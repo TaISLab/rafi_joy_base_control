@@ -15,12 +15,12 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 add_library(${PROJECT_NAME} src/teleop_twist_joy)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
-add_executable(${PROJECT_NAME}_node src/teleop_node.cpp)
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME} ${catkin_LIBRARIES})
-set_target_properties(${PROJECT_NAME}_node
+add_executable(teleop_node src/teleop_node.cpp)
+target_link_libraries(teleop_node ${PROJECT_NAME} ${catkin_LIBRARIES})
+set_target_properties(teleop_node
   PROPERTIES OUTPUT_NAME teleop_node PREFIX "")
 
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
+install(TARGETS ${PROJECT_NAME} teleop_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
