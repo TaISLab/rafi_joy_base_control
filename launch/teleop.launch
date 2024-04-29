@@ -14,7 +14,7 @@
     <remap from="joy" to="$(arg joy_topic)" />
   </node>
 
-  <node pkg="joy_ros" name="teleop_node" type="teleop_node">
+  <node pkg="joy_ros" type="teleop_node" name="teleop_twist_node" >
     <rosparam command="load" file="$(arg config_filepath)" />
     <remap from="joy" to="$(arg joy_topic)" />
   </node>
