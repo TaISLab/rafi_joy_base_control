@@ -15,12 +15,12 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 add_library(${PROJECT_NAME} src/teleop_twist_joy)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
-add_executable(teleop_node src/teleop_node.cpp)
-target_link_libraries(teleop_node ${PROJECT_NAME} ${catkin_LIBRARIES})
-set_target_properties(teleop_node
-  PROPERTIES OUTPUT_NAME teleop_node PREFIX "")
+add_executable(teleop_twist_node src/teleop_twist_node.cpp)
+target_link_libraries(teleop_twist_node ${PROJECT_NAME} ${catkin_LIBRARIES})
+set_target_properties(teleop_twist_node
+  PROPERTIES OUTPUT_NAME teleop_twist_node PREFIX "")
 
-install(TARGETS ${PROJECT_NAME} teleop_node
+install(TARGETS ${PROJECT_NAME} teleop_twist_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
@@ -34,7 +34,7 @@ install(DIRECTORY launch config
 if (CATKIN_ENABLE_TESTING)
 
   find_package(roslaunch REQUIRED)
-  roslaunch_add_file_check(launch/teleop.launch)
+  roslaunch_add_file_check(launch/teleop_twist.launch)
 
   find_package(rostest REQUIRED)
   include_directories(include ${catkin_INCLUDE_DIRS})
