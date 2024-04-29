@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>joy_ros</name>
+  <name>joy_base_control</name>
   <version>0.0.0</version>
   <description>The joy_ros package</description>
 
