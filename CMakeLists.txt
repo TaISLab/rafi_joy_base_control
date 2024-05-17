@@ -34,7 +34,8 @@ install(DIRECTORY launch config
 if (CATKIN_ENABLE_TESTING)
 
   find_package(roslaunch REQUIRED)
-  roslaunch_add_file_check(launch/teleop_twist.launch)
+  roslaunch_add_file_check(launch/teleop_twist.launch
+                            launch/teleop_twist_without_joy.launch)
 
   find_package(rostest REQUIRED)
   include_directories(include ${catkin_INCLUDE_DIRS})
