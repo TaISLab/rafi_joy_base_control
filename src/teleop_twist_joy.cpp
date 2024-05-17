@@ -156,7 +156,7 @@ namespace teleop_twist_joy
         ROS_INFO("Boton LB pulsado");
         cmd_vel_msg.linear.x = 0.1 * getVal(joy_msg, axis_position_map, "x");
         cmd_vel_msg.linear.y = 0.1 * getVal(joy_msg, axis_position_map, "y");
-        cmd_vel_msg.linear.z = 0.1 * getVal(joy_msg, axis_position_map, "z");
+        // cmd_vel_msg.linear.z = 0.1 * getVal(joy_msg, axis_position_map, "z");
 
         cmd_vel_msg.angular.z = 0.1 * getVal(joy_msg, axis_orientation_map, "z");
         // cmd_vel_msg.angular.y = getVal(joy_msg, axis_orientation_map, "y");
