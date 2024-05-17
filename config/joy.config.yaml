@@ -27,7 +27,7 @@ axis_position_map:
 
 # Control de orientación
 axis_orientation_map:
-  x: 3
+  z: 3
 
 # Button mapping
 enable_mov: 4
