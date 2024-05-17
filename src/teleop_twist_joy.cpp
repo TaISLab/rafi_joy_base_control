@@ -56,7 +56,7 @@ namespace teleop_twist_joy
     int decrement_vel;
     float mov_vel;
     float orientation_vel;
-    float min_vel = 2;
+    float min_vel = 0.1;
     float max_vel;
 
     float reaction_t = 0.5; // Tiempo en segundo de reaccion del operador
@@ -86,8 +86,11 @@ namespace teleop_twist_joy
     // Asignación de mapas
     nh_param->getParam("axis_position_map", pimpl_->axis_position_map);
     nh_param->getParam("axis_orientation_map", pimpl_->axis_orientation_map);
-
     nh_param->getParam("max_displacement_in_a_second", pimpl_->max_vel);
+
+    // Vbles iniciales
+    pimpl_->mov_vel = 0.5;
+
   }
 
   void TeleopTwistJoy::Impl::printTwistInfo(const geometry_msgs::Twist &velocity, const std::string &info_string)
@@ -154,24 +157,17 @@ namespace teleop_twist_joy
       {
         // Comandar velocidad
         ROS_INFO("Boton LB pulsado");
-        cmd_vel_msg.linear.x = 0.1 * getVal(joy_msg, axis_position_map, "x");
-        cmd_vel_msg.linear.y = 0.1 * getVal(joy_msg, axis_position_map, "y");
-        // cmd_vel_msg.linear.z = 0.1 * getVal(joy_msg, axis_position_map, "z");
+        cmd_vel_msg.linear.x = mov_vel * getVal(joy_msg, axis_position_map, "x");
+        cmd_vel_msg.linear.y = mov_vel * getVal(joy_msg, axis_position_map, "y");
+        cmd_vel_msg.angular.z = mov_vel * getVal(joy_msg, axis_orientation_map, "z");
 
-        cmd_vel_msg.angular.z = 0.1 * getVal(joy_msg, axis_orientation_map, "z");
-        // cmd_vel_msg.angular.y = getVal(joy_msg, axis_orientation_map, "y");
-        // cmd_vel_msg.angular.z = getVal(joy_msg, axis_orientation_map, "z");
         printTwistInfo(cmd_vel_msg, "Velocidad comandada");
       }
     }
     else
     { // Si no se toca LB -> Decelera
       cmd_vel_msg.linear.x = 0.0;
-      cmd_vel_msg.linear.x = 0.0;
-      cmd_vel_msg.linear.x = 0.0;
-
-      cmd_vel_msg.angular.x = 0.0;
-      cmd_vel_msg.angular.y = 0.0;
+      cmd_vel_msg.linear.y = 0.0;
       cmd_vel_msg.angular.z = 0.0;
       printTwistInfo(cmd_vel_msg, "Velocidad comandada");
     }
