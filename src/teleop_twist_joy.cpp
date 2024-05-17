@@ -30,156 +30,145 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include <map>
 #include <string>
 
-
 namespace teleop_twist_joy
 {
 
-/**
- * Internal members of class. This is the pimpl idiom, and allows more flexibility in adding
- * parameters later without breaking ABI compatibility, for robots which link TeleopTwistJoy
- * directly into base nodes.
- */
-struct TeleopTwistJoy::Impl
-{
-  void joyCallback(const sensor_msgs::Joy::ConstPtr& joy);
-  void sendCmdVelMsg(const sensor_msgs::Joy::ConstPtr& joy_msg, const std::string& which_map);
-
-  ros::Subscriber joy_sub;
-  ros::Publisher cmd_vel_pub;
-
-  int enable_button;
-  int enable_turbo_button;
-  
-  std::map<std::string, int> axis_linear_map;
-  std::map< std::string, std::map<std::string, double> > scale_linear_map;
-
-  std::map<std::string, int> axis_angular_map;
-  std::map< std::string, std::map<std::string, double> > scale_angular_map;
-
-  bool sent_disable_msg;
-};
-
-/**
- * Constructs TeleopTwistJoy.
- * \param nh NodeHandle to use for setting up the publisher and subscriber.
- * \param nh_param NodeHandle to use for searching for configuration parameters.
- */
-TeleopTwistJoy::TeleopTwistJoy(ros::NodeHandle* nh, ros::NodeHandle* nh_param)
-{
-  pimpl_ = new Impl;
-
-  pimpl_->cmd_vel_pub = nh->advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
-  pimpl_->joy_sub = nh->subscribe<sensor_msgs::Joy>("joy", 1, &TeleopTwistJoy::Impl::joyCallback, pimpl_);
-
-  nh_param->param<int>("enable_button", pimpl_->enable_button, 0);
-  nh_param->param<int>("enable_turbo_button", pimpl_->enable_turbo_button, -1);
-
-  if (nh_param->getParam("axis_linear", pimpl_->axis_linear_map))
+  /**
+   * Internal members of class. This is the pimpl idiom, and allows more flexibility in adding
+   * parameters later without breaking ABI compatibility, for robots which link TeleopTwistJoy
+   * directly into base nodes.
+   */
+  struct TeleopTwistJoy::Impl
   {
-    nh_param->getParam("scale_linear", pimpl_->scale_linear_map["normal"]);
-    nh_param->getParam("scale_linear_turbo", pimpl_->scale_linear_map["turbo"]);
-  }
-  else
-  {
-    nh_param->param<int>("axis_linear", pimpl_->axis_linear_map["x"], 1);
-    nh_param->param<double>("scale_linear", pimpl_->scale_linear_map["normal"]["x"], 0.5);
-    nh_param->param<double>("scale_linear_turbo", pimpl_->scale_linear_map["turbo"]["x"], 1.0);
-  }
+    // Members fuctions
+    void joyCallback(const sensor_msgs::Joy::ConstPtr &joy);
+    void ModifyVelocity(const sensor_msgs::Joy::ConstPtr &joy_msg, float &scale, float &max_vel);
 
-  if (nh_param->getParam("axis_angular", pimpl_->axis_angular_map))
+    // ROS subscribers and publisher
+    ros::Subscriber joy_sub;
+    ros::Publisher cmd_vel_pub;
+
+    geometry_msgs::Twist cmd_vel_msg;
+
+    int enable_mov; // Activa el movimiento
+    int increment_vel;
+    int decrement_vel;
+    float mov_vel;
+    float orientation_vel;
+    float min_vel = 2;
+    float max_vel;
+
+    float reaction_t = 0.5; // Tiempo en segundo de reaccion del operador
+    float Delta_t = 0.01;   // Tiempo en segundo
+
+    std::map<std::string, int> axis_position_map;
+    std::map<std::string, int> axis_orientation_map;
+  };
+
+  /**
+   * Constructs TeleopTwistJoy.
+   * \param nh NodeHandle to use for setting up the publisher and subscriber.
+   * \param nh_param NodeHandle to use for searching for configuration parameters.
+   */
+  TeleopTwistJoy::TeleopTwistJoy(ros::NodeHandle *nh, ros::NodeHandle *nh_param)
   {
-    nh_param->getParam("scale_angular", pimpl_->scale_angular_map["normal"]);
-    nh_param->getParam("scale_angular_turbo", pimpl_->scale_angular_map["turbo"]);
-  }
-  else
-  {
-    nh_param->param<int>("axis_angular", pimpl_->axis_angular_map["yaw"], 0);
-    nh_param->param<double>("scale_angular", pimpl_->scale_angular_map["normal"]["yaw"], 0.5);
-    nh_param->param<double>("scale_angular_turbo",
-        pimpl_->scale_angular_map["turbo"]["yaw"], pimpl_->scale_angular_map["normal"]["yaw"]);
+    pimpl_ = new Impl;
+
+    pimpl_->cmd_vel_pub = nh->advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
+    pimpl_->joy_sub = nh->subscribe<sensor_msgs::Joy>("joy", 1, &TeleopTwistJoy::Impl::joyCallback, pimpl_);
+
+    // Asignar botones
+    nh_param->param<int>("enable_mov", pimpl_->enable_mov, 0);
+    nh_param->param<int>("increment_velocity", pimpl_->increment_vel, -1);
+    nh_param->param<int>("decrement_velocity", pimpl_->decrement_vel, -1);
+
+    // Asignación de mapas
+    nh_param->getParam("axis_position_map", pimpl_->axis_position_map);
+    nh_param->getParam("axis_orientation_map", pimpl_->axis_orientation_map);
+
+    nh_param->getParam("max_displacement_in_a_second", pimpl_->max_vel);
+    
   }
 
-  ROS_INFO_NAMED("TeleopTwistJoy", "Teleop enable button %i.", pimpl_->enable_button);
-  ROS_INFO_COND_NAMED(pimpl_->enable_turbo_button >= 0, "TeleopTwistJoy",
-      "Turbo on button %i.", pimpl_->enable_turbo_button);
-
-  for (std::map<std::string, int>::iterator it = pimpl_->axis_linear_map.begin();
-      it != pimpl_->axis_linear_map.end(); ++it)
+  double getVal(const sensor_msgs::Joy::ConstPtr &joy_msg, const std::map<std::string, int> &axis_map, const std::string &fieldname)
   {
-    ROS_INFO_NAMED("TeleopTwistJoy", "Linear axis %s on %i at scale %f.",
-    it->first.c_str(), it->second, pimpl_->scale_linear_map["normal"][it->first]);
-    ROS_INFO_COND_NAMED(pimpl_->enable_turbo_button >= 0, "TeleopTwistJoy",
-        "Turbo for linear axis %s is scale %f.", it->first.c_str(), pimpl_->scale_linear_map["turbo"][it->first]);
-  }
+    /*
+    Método que obtiene valores especificos del mensaje del joystick:
+    Argumentos:
+      - joy_msg: mensaje joy del cual se va a obtener la informacion
+      - axis_map: mapa de ejes de control
+      - fieldname: campo que se quiere obtener [x,y,z] o [x,y,z,w]
+    */
 
-  for (std::map<std::string, int>::iterator it = pimpl_->axis_angular_map.begin();
-      it != pimpl_->axis_angular_map.end(); ++it)
-  {
-    ROS_INFO_NAMED("TeleopTwistJoy", "Angular axis %s on %i at scale %f.",
-    it->first.c_str(), it->second, pimpl_->scale_angular_map["normal"][it->first]);
-    ROS_INFO_COND_NAMED(pimpl_->enable_turbo_button >= 0, "TeleopTwistJoy",
-        "Turbo for angular axis %s is scale %f.", it->first.c_str(), pimpl_->scale_angular_map["turbo"][it->first]);
-  }
-
-  pimpl_->sent_disable_msg = false;
-}
-
-double getVal(const sensor_msgs::Joy::ConstPtr& joy_msg, const std::map<std::string, int>& axis_map,
-              const std::map<std::string, double>& scale_map, const std::string& fieldname)
-{
-  if (axis_map.find(fieldname) == axis_map.end() ||
-      scale_map.find(fieldname) == scale_map.end() ||
-      joy_msg->axes.size() <= axis_map.at(fieldname))
-  {
-    return 0.0;
-  }
-
-  return joy_msg->axes[axis_map.at(fieldname)] * scale_map.at(fieldname);
-}
-
-void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::Joy::ConstPtr& joy_msg,
-                                         const std::string& which_map)
-{
-  // Initializes with zeros by default.
-  geometry_msgs::Twist cmd_vel_msg;
-
-  cmd_vel_msg.linear.x = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "x");
-  cmd_vel_msg.linear.y = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "y");
-  cmd_vel_msg.linear.z = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "z");
-  cmd_vel_msg.angular.z = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "yaw");
-  cmd_vel_msg.angular.y = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "pitch");
-  cmd_vel_msg.angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
-
-  cmd_vel_pub.publish(cmd_vel_msg);
-  sent_disable_msg = false;
-}
-
-void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy_msg)
-{
-  if (enable_turbo_button >= 0 &&
-      joy_msg->buttons.size() > enable_turbo_button &&
-      joy_msg->buttons[enable_turbo_button])
-  {
-    sendCmdVelMsg(joy_msg, "turbo");
-  }
-  else if (joy_msg->buttons.size() > enable_button &&
-           joy_msg->buttons[enable_button])
-  {
-    sendCmdVelMsg(joy_msg, "normal");
-  }
-  else
-  {
-    // When enable button is released, immediately send a single no-motion command
-    // in order to stop the robot.
-    if (!sent_disable_msg)
+    if (axis_map.find(fieldname) == axis_map.end() || joy_msg->axes.size() <= axis_map.at(fieldname))
     {
-      // Initializes with zeros by default.
-      geometry_msgs::Twist cmd_vel_msg;
-      cmd_vel_pub.publish(cmd_vel_msg);
-      sent_disable_msg = true;
+      return 0.0;
     }
+
+    return joy_msg->axes[axis_map.at(fieldname)];
   }
 
-}
+  void TeleopTwistJoy::Impl::ModifyVelocity(const sensor_msgs::Joy::ConstPtr &joy_msg,
+                                            float &scale,
+                                            float &max_vel)
+  {
+    // Modifica la velocidad para una escala determinada
+    if (joy_msg->buttons[increment_vel])
+    {
 
-}  // namespace teleop_twist_joy
+      // scale = scale*1.2; // Incremento de la escala
+      scale = std::min(static_cast<double>(scale * 1.2), static_cast<double>(max_vel));
+      ROS_INFO("Velocidad incrementada a %f", scale);
+    }
+    else if (joy_msg->buttons[decrement_vel])
+    {
+
+      // scale = std::max(scale/1.2, min_vel); // Decremento de la escala
+      scale = std::max(static_cast<double>(scale / 1.2), static_cast<double>(min_vel));
+      ROS_INFO("Velocidad decrementada a %f", scale);
+    }
+    ros::Duration(reaction_t).sleep(); // Espera un tiempo de reaccion
+  }
+
+
+  void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::Joy::ConstPtr &joy_msg)
+  {
+
+    if (joy_msg->buttons[enable_mov]) // Boton derecho
+    {
+      ROS_INFO("Boton LB pulsado");
+      
+      if (joy_msg->buttons[increment_vel] || joy_msg->buttons[decrement_vel]){
+        // Subir velocidad
+        ModifyVelocity(joy_msg, mov_vel, max_vel);
+
+      }else{
+        
+        // Comandar velocidad
+        ROS_INFO("Boton LB pulsado");
+        cmd_vel_msg.linear.x = getVal(joy_msg, axis_position_map, "x");
+        cmd_vel_msg.linear.x = getVal(joy_msg, axis_position_map, "y");
+        cmd_vel_msg.linear.x = getVal(joy_msg, axis_position_map, "z");
+
+        cmd_vel_msg.angular.x = getVal(joy_msg, axis_orientation_map, "x");
+        cmd_vel_msg.angular.y = getVal(joy_msg, axis_orientation_map, "y");
+        cmd_vel_msg.angular.z = getVal(joy_msg, axis_orientation_map, "z");
+        
+      }
+
+    }
+    else
+    { // Si no se toca LB -> Decelera
+      cmd_vel_msg.linear.x = 0.0;
+      cmd_vel_msg.linear.x = 0.0;
+      cmd_vel_msg.linear.x = 0.0;
+
+      cmd_vel_msg.angular.x = 0.0;
+      cmd_vel_msg.angular.y = 0.0;
+      cmd_vel_msg.angular.z = 0.0;
+    }
+
+    cmd_vel_pub.publish(cmd_vel_msg);
+  }
+
+} // namespace teleop_twist_joy
