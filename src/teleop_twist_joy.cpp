@@ -41,6 +41,7 @@ namespace teleop_twist_joy
   struct TeleopTwistJoy::Impl
   {
     // Members fuctions
+    void printTwistInfo(const geometry_msgs::Twist &velocity, const std::string &info_string);
     void joyCallback(const sensor_msgs::Joy::ConstPtr &joy);
     void ModifyVelocity(const sensor_msgs::Joy::ConstPtr &joy_msg, float &scale, float &max_vel);
 
@@ -87,7 +88,14 @@ namespace teleop_twist_joy
     nh_param->getParam("axis_orientation_map", pimpl_->axis_orientation_map);
 
     nh_param->getParam("max_displacement_in_a_second", pimpl_->max_vel);
-    
+  }
+
+  void TeleopTwistJoy::Impl::printTwistInfo(const geometry_msgs::Twist &velocity, const std::string &info_string)
+  {
+    ROS_INFO("%s - Linear (x, y, z): (%.5f, %.5f, %.5f), Angular (x, y, z, w): (%.5f, %.5f, %.5f)",
+             info_string.c_str(),
+             velocity.linear.x, velocity.linear.y, velocity.linear.z,
+             velocity.angular.x, velocity.angular.y, velocity.angular.z);
   }
 
   double getVal(const sensor_msgs::Joy::ConstPtr &joy_msg, const std::map<std::string, int> &axis_map, const std::string &fieldname)
@@ -130,32 +138,32 @@ namespace teleop_twist_joy
     ros::Duration(reaction_t).sleep(); // Espera un tiempo de reaccion
   }
 
-
   void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::Joy::ConstPtr &joy_msg)
   {
 
     if (joy_msg->buttons[enable_mov]) // Boton derecho
     {
       ROS_INFO("Boton LB pulsado");
-      
-      if (joy_msg->buttons[increment_vel] || joy_msg->buttons[decrement_vel]){
+
+      if (joy_msg->buttons[increment_vel] || joy_msg->buttons[decrement_vel])
+      {
         // Subir velocidad
         ModifyVelocity(joy_msg, mov_vel, max_vel);
+      }
+      else
+      {
 
-      }else{
-        
         // Comandar velocidad
         ROS_INFO("Boton LB pulsado");
-        cmd_vel_msg.linear.x = getVal(joy_msg, axis_position_map, "x");
-        cmd_vel_msg.linear.x = getVal(joy_msg, axis_position_map, "y");
-        cmd_vel_msg.linear.x = getVal(joy_msg, axis_position_map, "z");
+        cmd_vel_msg.linear.x = 0.1 * getVal(joy_msg, axis_position_map, "x");
+        cmd_vel_msg.linear.y = 0.1 * getVal(joy_msg, axis_position_map, "y");
+        cmd_vel_msg.linear.z = 0.1 * getVal(joy_msg, axis_position_map, "z");
 
-        cmd_vel_msg.angular.x = getVal(joy_msg, axis_orientation_map, "x");
-        cmd_vel_msg.angular.y = getVal(joy_msg, axis_orientation_map, "y");
-        cmd_vel_msg.angular.z = getVal(joy_msg, axis_orientation_map, "z");
-        
+        cmd_vel_msg.angular.x = 0.1 * getVal(joy_msg, axis_orientation_map, "x");
+        // cmd_vel_msg.angular.y = getVal(joy_msg, axis_orientation_map, "y");
+        // cmd_vel_msg.angular.z = getVal(joy_msg, axis_orientation_map, "z");
+        printTwistInfo(cmd_vel_msg, "Velocidad comandada");
       }
-
     }
     else
     { // Si no se toca LB -> Decelera
@@ -166,8 +174,10 @@ namespace teleop_twist_joy
       cmd_vel_msg.angular.x = 0.0;
       cmd_vel_msg.angular.y = 0.0;
       cmd_vel_msg.angular.z = 0.0;
+      printTwistInfo(cmd_vel_msg, "Velocidad comandada");
     }
-
+    ROS_INFO("Publico velocidad");
+    printTwistInfo(cmd_vel_msg, "Velocidad publicada");
     cmd_vel_pub.publish(cmd_vel_msg);
   }
 

@@ -22,13 +22,12 @@
 
 # Control de posicion
 axis_position_map:
-x: 1
-y: 0
+  x: 1
+  y: 0
 
 # Control de orientación
 axis_orientation_map:
-x: 3
-y: 4
+  x: 3
 
 # Button mapping
 enable_mov: 4
