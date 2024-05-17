@@ -110,12 +110,9 @@ TeleopTwistJoy::TeleopTwistJoy(ros::NodeHandle* nh, ros::NodeHandle* nh_param)
         pimpl_->scale_angular_map["turbo"]["yaw"], pimpl_->scale_angular_map["normal"]["yaw"]);
   }
 
-
-  
   ROS_INFO_NAMED("TeleopTwistJoy", "Teleop enable button %i.", pimpl_->enable_button); // Imprime por pantalla
   ROS_INFO_COND_NAMED(pimpl_->enable_turbo_button >= 0, "TeleopTwistJoy", // Imprime por pantalla si la condición es verdadera
       "Turbo on button %i.", pimpl_->enable_turbo_button);
-
 
   // Bucle for que recorre el mapa axis_linear_map. Cada elemento en ese mapa es un par clave-valor
   for (std::map<std::string, int>::iterator it = pimpl_->axis_linear_map.begin();
