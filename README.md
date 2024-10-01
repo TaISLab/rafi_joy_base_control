@@ -7,10 +7,14 @@ Este nodo se subscribe al topic `/Joy` que contiene un mensaje del tipo `sensor_
 
 Para iniciar el movimiento, el operador debe pulsar el botón B del mando y accionar el joystick JL, para comandar velocidad lineal en el plano XY, o el joystick JR, para comandar velocidad angular sobre el eje Z de la plataforma.
 
-## Paquetes necesarios
-Se debe tener instalado el paquete `joy` encargado de actuar como driver para el mando. Se encuentra disponible en: http://wiki.ros.org/joy
-
 ## Instalación
+
+### Paquetes necesarios
+Para su uso, se debe tener instalados los siguientes paquetes. Se adjunta el enlace que contiene información sobre su instalación.
+- `joy`. Driver para el mando. Disponible en: http://wiki.ros.org/joy.
+- `roboclaw_ros`. Se trata de una adaptación del paquete `roboclaw_ros` para dos placas funcionando simultáneamente. <!-- añadir enlace al paquete-->
+
+### Instalación de este paquete
 En la terminal de linux:
 
 ```bash
@@ -25,7 +29,7 @@ roslaunch joy_base_control teleop_twist.launch
 Este comando se encarga de iniciar el nodo del driver del mando y el nodo teleop_twist_node que se encarga de publicar el comando de velocidad en el topic. El nodo del controlador se debe lanzar de manera independiente.
 
 ## Modificación de los botones
-Para modificar la relación entre los ejes/botones y su funcionalidad se debe modificar el archivo joy.config.yaml contenido dentro de la carpeta `/config`. Se recomienda el programa Jstest-gtk para identificar los botones y los ejes.
+Para modificar la relación entre los ejes/botones y su funcionalidad se debe modificar el archivo `joy.config.yaml` contenido dentro de la carpeta `/config`. Se recomienda el programa Jstest-gtk para identificar los botones y los ejes.
 
 ## Proyecto RAFI
 Este paquete se ha desarrollado para enviar comandos de velocidad al controlador Roboclaw de los motores. No contiene el controlador de la base. Solo contiene el nodo encargado de traducir la información del mando a un mensaje `Twist`. El controlador de la base debe ser lanzado por separado. Para lanzar todos los nodos relacionados con la teleoperación y el control de la base, véase el paquete `rafi_launch_files`.
