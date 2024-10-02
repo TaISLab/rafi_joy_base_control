@@ -1,7 +1,11 @@
 /**
+Modificaciones realizadas por Rodrigo Castro Ochoa <rcastro@uma.es> en 2024.
+- Modificación del nombre del archivo
+
+---
 Software License Agreement (BSD)
 
-\file      teleop_node.cpp
+\file      teleop_twist_node.cpp
 \authors   Mike Purvis <mpurvis@clearpathrobotics.com>
 \copyright Copyright (c) 2014, Clearpath Robotics, Inc., All rights reserved.
 
