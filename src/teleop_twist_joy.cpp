@@ -6,7 +6,7 @@ Author: Rodrigo Castro Ochoa, rcastro@uma.es, University of Málaga.
 
 Description:
 Teleoperation of a omnidirectional mobile plattform.
-This node subscribes to the topic /Joy and publishes a Twist message in the topic /cmd_vel.
+This node subscribes to the topic /Joy and publishes a Twist message in the topic /cmd_base_vel.
 
 Credits:
 This code is based on the teleop_twist_joy project, available at: http://wiki.ros.org/teleop_twist_joy
@@ -65,7 +65,7 @@ namespace teleop_twist_joy
   {
     pimpl_ = new Impl;
 
-    pimpl_->cmd_vel_pub = nh->advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
+    pimpl_->cmd_vel_pub = nh->advertise<geometry_msgs::Twist>("cmd_base_vel", 1, true);
     pimpl_->joy_sub = nh->subscribe<sensor_msgs::Joy>("joy", 1, &TeleopTwistJoy::Impl::joyCallback, pimpl_);
 
     // Asignacion de botones
